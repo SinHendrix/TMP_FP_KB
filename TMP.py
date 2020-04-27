@@ -219,8 +219,8 @@ class Maze:
 
 
 class App:
-  windowWidth = 800
-  windowHeight = 600
+  windowWidth = 44 * 9
+  windowHeight = 44 * 9
   player = 0
 
   def __init__(self):
