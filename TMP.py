@@ -166,50 +166,65 @@ def findPath(maze, start_pos, finish_pos):
       if valid(maze, next_path, start_pos):
         nums.put(next_path)
 
-  return path  
+  return path
 
 class Player:
-  x = 5 * 44
-  y = 0 * 44
-  speed = 44
-
+  def __init__(self, maze):
+    self.key_left = 4
+    self.maze = maze
+    self.real_x = 5
+    self.real_y = 0
+    self.x = self.real_x * 44
+    self.y = self.real_y * 44
+    self.speed = 44
+    self.finish = 0
+    
   def moveRight(self):
-    self.x = self.x + self.speed
+    if self.real_x != 8 and self.maze[self.real_y * 9 + self.real_x + 1] != '1':
+      if self.maze[self.real_y * 9 + self.real_x + 1] == 'F' and self.key_left > 0:
+        return
+      self.real_x = self.real_x + 1
+      self.x = self.x + self.speed
 
   def moveLeft(self):
-    self.x = self.x - self.speed
+    if self.real_x != 0 and self.maze[self.real_y * 9 + self.real_x - 1] != '1':
+      if self.maze[self.real_y * 9 + self.real_x + 1] == 'F' and self.key_left > 0:
+        return
+      self.real_x = self.real_x - 1
+      self.x = self.x - self.speed
 
   def moveUp(self):
-    self.y = self.y - self.speed
+    if self.real_y != 0 and self.maze[(self.real_y - 1) * 9 + self.real_x] != '1':
+      if self.maze[(self.real_y - 1) * 9 + self.real_x] == 'F' and self.key_left > 0:
+        return
+      self.real_y = self.real_y - 1
+      self.y = self.y - self.speed
 
   def moveDown(self):
-    self.y = self.y + self.speed
+    if self.real_y != 8 and self.maze[(self.real_y + 1) * 9 + self.real_x] != '1':
+      if self.maze[(self.real_y + 1) * 9 + self.real_x] == 'F' and self.key_left > 0:
+        return
+      
+      self.real_y = self.real_y + 1
+      self.y = self.y + self.speed
 
 class Maze:
-  def __init__(self):
-    self.M = 9
-    self.N = 9
-    self.maze = [ 1, 1, 1, 1, 1, 0, 1, 1, 1,
-                  1, 0, 2, 0, 0, 0, 0, 0, 1,
-                  1, 0, 1, 1, 0, 1, 1, 2, 1,
-                  1, 0, 1, 0, 0, 0, 1, 0, 1,
-                  1, 0, 1, 0, 1, 0, 1, 0, 1,
-                  1, 0, 1, 0, 1, 2, 1, 0, 1,
-                  1, 0, 1, 0, 1, 0, 1, 1, 1,
-                  1, 2, 0, 0, 0, 0, 0, 0, 1,
-                  1, 1, 1, 1, 1, 1, 1, 3, 1 ]
+  def __init__(self, maze, m, n):
+    self.M = m
+    self.N = n
+    self.maze = maze
 
   def draw(self, display_surf, bush_image_surf, key_image_surf, door_image_surf):
     bx = 0
     by = 0
-    for i in range(0,self.M*self.N):
-      if self.maze[ bx + (by*self.M) ] == 1:
+    for i in self.maze:
+      if self.maze[ bx + (by*self.M) ] == '1':
         display_surf.blit(bush_image_surf,( bx * 44 , by * 44))
 
-      if self.maze[ bx + (by*self.M) ] == 2:
+      if self.maze[ bx + (by*self.M) ] == 'A' or self.maze[ bx + (by*self.M) ] == 'B' or self.maze[ bx + (by*self.M) ] == 'C' or self.maze[ bx + (by*self.M) ] == 'D' :
         display_surf.blit(key_image_surf,( bx * 44 , by * 44))
 
-      if self.maze[ bx + (by*self.M) ] == 3:
+      if self.maze[ bx + (by*self.M) ] == 'F':
         display_surf.blit(door_image_surf,( bx * 44 , by * 44))
 
       bx = bx + 1
@@ -230,8 +245,27 @@ class App:
     self._bush_surf = None
     self._key_surf = None
     self._door_surf = None
-    self.player = Player()
-    self.maze = Maze()
+    
+    self.hard_maze = []
+
+    self.hard_maze = [['1', '1', '1', '1', '1', 'S', '1', '1', '1'], 
+                      ['1', '0', 'D', '0', '0', '0', '0', '0', '1'], 
+                      ['1', '0', '1', '1', '0', '1', '1', 'C', '1'], 
+                      ['1', '0', '1', '0', '0', '0', '1', '0', '1'], 
+                      ['1', '0', '1', '0', '1', '0', '1', '0', '1'], 
+                      ['1', '0', '1', '0', '1', 'B', '1', '0', '1'], 
+                      ['1', '0', '1', '0', '1', '0', '1', '1', '1'], 
+                      ['1', 'A', '0', '0', '0', '0', '0', '0', '1'], 
+                      ['1', '1', '1', '1', '1', '1', '1', 'F', '1'] ]
+
+    self.game_maze = []
+    for features in self.hard_maze:
+      for feature in features:
+        self.game_maze.append(feature)
+
+    self.player = Player(self.game_maze)
+
+    self.maze = Maze(self.game_maze, 9, 9)
 
   def on_init(self):
     pygame.init()
@@ -241,7 +275,7 @@ class App:
     self._image_surf = pygame.image.load("assets/mazeman.png").convert()
     self._bush_surf = pygame.image.load("assets/bush.png").convert()
     self._key_surf = pygame.image.load("assets/key.png").convert()
-    self._door_surf = pygame.image.load("assets/unlocked_door.png").convert()
+    self._door_surf = pygame.image.load("assets/door.png").convert()
 
   def on_event(self, event):
     if event.type == QUIT:
@@ -252,6 +286,12 @@ class App:
   
   def on_render(self):
     self._display_surf.fill((255, 255, 255))
+    feature = self.game_maze[self.player.real_y * 9 + self.player.real_x]
+    if feature == 'A' or feature == 'B' or feature == 'C' or feature == 'D':
+      self.game_maze[self.player.real_y * 9 + self.player.real_x] = '0'
+      self.player.key_left = self.player.key_left - 1
+      if self.player.key_left == 0:
+        self._door_surf = pygame.image.load("assets/unlocked_door.png").convert()
     self.maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._door_surf)
     self._display_surf.blit(self._image_surf,(self.player.x,self.player.y))
     pygame.display.flip()
@@ -266,23 +306,8 @@ class App:
     self.on_render()
 
     all_path = {}
-    maze = []
-    # n = int(input('size : '))
-    # print('maze : ')
-    # for i in range(n):
-    #   row = input().split(' ')
-    #   maze.append(row)
-    maze = [['1', '1', '1', '1', '1', 'S', '1', '1', '1'], 
-            ['1', '0', 'D', '0', '0', '0', '0', '0', '1'], 
-            ['1', '0', '1', '1', '0', '1', '1', 'C', '1'], 
-            ['1', '0', '1', '0', '0', '0', '1', '0', '1'], 
-            ['1', '0', '1', '0', '1', '0', '1', '0', '1'], 
-            ['1', '0', '1', '0', '1', 'B', '1', '0', '1'], 
-            ['1', '0', '1', '0', '1', '0', '1', '1', '1'], 
-            ['1', 'A', '0', '0', '0', '0', '0', '0', '1'], 
-            ['1', '1', '1', '1', '1', '1', '1', 'F', '1']]
 
-    graph, all_path = mazeToGraph(maze)
+    graph, all_path = mazeToGraph(self.hard_maze)
     local_minimum_condition = []
     local_minimum_condition.append('S')
     local_minimum_objectives, local_minimum_cost = evaluate(graph, ['A', 'B', 'C', 'D'])
@@ -290,64 +315,54 @@ class App:
       local_minimum_condition.append(objective)
 
     local_minimum_condition.append('F')
-#         print('minimum steps found :', local_minimum_cost)
-
-#         for path in local_minimum_condition:
-#           if path == 'F':
-#             print(path)
-#           else:
-#             print(path, end=' -> ')
-#         print()
-
-    # for i in range (int(len(local_minimum_condition)) - 1) :
-      # print('Step', i + 1, ' : ', local_minimum_condition[i], '->', local_minimum_condition[i + 1])
-      # printMaze(maze, local_minimum_condition[i], all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
 
     full_path = ''
     for i in range (int(len(local_minimum_condition)) - 1) :
       full_path = full_path + str(all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
 
-    for path in full_path:
-      if path == 'L':
-        self.player.moveLeft();
-        time.sleep(0.7)
+    # for path in full_path:
+    #   if path == 'L':
+    #     self.player.moveLeft();
+    #     time.sleep(0.7)
 
-      if path == 'R':
-        self.player.moveRight();
-        time.sleep(0.7)
+    #   if path == 'R':
+    #     self.player.moveRight();
+    #     time.sleep(0.7)
 
-      if path == 'U':
-        self.player.moveUp();
-        time.sleep(0.7)
+    #   if path == 'U':
+    #     self.player.moveUp();
+    #     time.sleep(0.7)
 
-      if path == 'D':
-        self.player.moveDown();
-        time.sleep(0.7)
+    #   if path == 'D':
+    #     self.player.moveDown();
+    #     time.sleep(0.7)
 
-      self.on_loop()
-      self.on_render()
+    #   self.on_loop()
+    #   self.on_render()
 
     while (self._running):
       pygame.event.pump()
+      event = pygame.event.wait()
       keys = pygame.key.get_pressed()
-  
-      if (keys[K_RIGHT]):
-        self.player.moveRight()
 
-      if (keys[K_LEFT]):
-        self.player.moveLeft()
+      if event.type == pygame.KEYDOWN: 
+        if (keys[K_RIGHT]):
+          self.player.moveRight()
 
-      if (keys[K_UP]):
-        self.player.moveUp()
+        if (keys[K_LEFT]):
+          self.player.moveLeft()
 
-      if (keys[K_DOWN]):
-        self.player.moveDown()
+        if (keys[K_UP]):
+          self.player.moveUp()
 
-      if (keys[K_ESCAPE]):
-        self._running = False
+        if (keys[K_DOWN]):
+          self.player.moveDown()
 
-      self.on_loop()
-      self.on_render()
+        if (keys[K_ESCAPE]):
+          self._running = False
+
+        self.on_loop()
+        self.on_render()
     self.on_cleanup()
  
 if __name__ == "__main__" :
