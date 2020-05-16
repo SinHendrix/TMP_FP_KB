@@ -40,7 +40,6 @@ def evaluate(graph, initial_condition):
   local_minimum_changed = False
 
   first_index = 0
-
   
   while first_index in range(len(initial_condition) - 1):
     second_index = first_index + 1
@@ -179,28 +178,40 @@ class Player:
     self.x = self.real_x * 44
     self.y = self.real_y * 44
     self.speed = 44
-    self.finish = 0
+    self.finish = False
     
   def moveRight(self):
     if self.real_x != 8 and self.maze[self.real_y * 9 + self.real_x + 1] != '1':
       if self.maze[self.real_y * 9 + self.real_x + 1] == 'F' and self.key_left > 0:
         return
+
       self.real_x = self.real_x + 1
       self.x = self.x + self.speed
 
+      if self.maze[self.real_y * 9 + self.real_x] == 'F':
+        self.finish = True
+
   def moveLeft(self):
     if self.real_x != 0 and self.maze[self.real_y * 9 + self.real_x - 1] != '1':
-      if self.maze[self.real_y * 9 + self.real_x + 1] == 'F' and self.key_left > 0:
+      if self.maze[self.real_y * 9 + self.real_x - 1] == 'F' and self.key_left > 0:
         return
+
       self.real_x = self.real_x - 1
       self.x = self.x - self.speed
+
+      if self.maze[self.real_y * 9 + self.real_x] == 'F':
+        self.finish = True
 
   def moveUp(self):
     if self.real_y != 0 and self.maze[(self.real_y - 1) * 9 + self.real_x] != '1':
       if self.maze[(self.real_y - 1) * 9 + self.real_x] == 'F' and self.key_left > 0:
         return
+
       self.real_y = self.real_y - 1
       self.y = self.y - self.speed
+      
+      if self.maze[self.real_y * 9 + self.real_x] == 'F':
+        self.finish = True
 
   def moveDown(self):
     if self.real_y != 8 and self.maze[(self.real_y + 1) * 9 + self.real_x] != '1':
@@ -209,6 +220,9 @@ class Player:
       
       self.real_y = self.real_y + 1
       self.y = self.y + self.speed
+
+      if self.maze[self.real_y * 9 + self.real_x] == 'F':
+        self.finish = True
 
 class Maze:
   def __init__(self, maze, m, n, x, y):
@@ -227,7 +241,7 @@ class Maze:
       if self.maze[ bx + (by*self.M) ] == '1':
         display_surf.blit(bush_image_surf,( (bx + dx) * 44 , (by + dy) * 44))
 
-      if self.maze[ bx + (by*self.M) ] == 'A' or self.maze[ bx + (by*self.M) ] == 'B' or self.maze[ bx + (by*self.M) ] == 'C' or self.maze[ bx + (by*self.M) ] == 'D' :
+      if self.maze[ bx + (by*self.M) ] in 'ABCD' :
         display_surf.blit(key_image_surf,( (bx + dx) * 44 , (by + dy) * 44))
 
       if self.maze[ bx + (by*self.M) ] == 'F':
@@ -264,6 +278,7 @@ class App:
                       ['1', 'A', '0', '0', '0', '0', '0', '0', '1'], 
                       ['1', '1', '1', '1', '1', '1', '1', 'F', '1'] ]
 
+  def on_init(self):
     self.game_maze = []
     for features in self.hard_maze:
       for feature in features:
@@ -277,7 +292,6 @@ class App:
     self.maze = Maze(self.game_maze, 9, 9, 0, 0)
     self.player_right_maze = Maze(self.player_maze, 9, 9, 9, 0)
 
-  def on_init(self):
     self._display_surf.fill((255, 255, 255)) 
     self._running = True
     self._image_surf = pygame.image.load("assets/mazeman.png").convert()
@@ -296,14 +310,14 @@ class App:
   def on_render(self):
     self._display_surf.fill((255, 255, 255))
     feature = self.game_maze[self.robot.real_y * 9 + self.robot.real_x]
-    if feature == 'A' or feature == 'B' or feature == 'C' or feature == 'D':
+    if feature in 'ABCD':
       self.game_maze[self.robot.real_y * 9 + self.robot.real_x] = '0'
       self.robot.key_left = self.robot.key_left - 1
       if self.robot.key_left == 0:
         self._robot_door_surf = pygame.image.load("assets/unlocked_door.png").convert()
 
     player_feature = self.player_maze[self.player.real_y * 9 + self.player.real_x]
-    if player_feature == 'A' or player_feature == 'B' or player_feature == 'C' or player_feature == 'D':
+    if player_feature in 'ABCD':
       self.player_maze[self.player.real_y * 9 + self.player.real_x] = '0'
       self.player.key_left = self.player.key_left - 1
       if self.player.key_left == 0:
@@ -343,6 +357,9 @@ class App:
 
   def robotThread(self):
     for path in self.full_path:
+      if not self._running:
+        break
+
       if path == 'L':
         self.robot.moveLeft()
 
@@ -359,63 +376,114 @@ class App:
       self.on_loop()
       self.on_render()
 
-  def on_execute(self):
-    pygame.init()
-    self._display_surf = pygame.display.set_mode((self.windowWidth,self.windowHeight), pygame.HWSURFACE)
-    pygame.display.set_caption('Travelling Mazeman Problem')
+  def draw_text(self, text, color, x, y):
+    font = pygame.font.SysFont(None, 20)
+    textobj = font.render(text, 1, color)
+    textrect = textobj.get_rect()
+    textrect.topleft = (x, y)
+    self._display_surf.blit(textobj, textrect)
+    pygame.display.update()
+    time.sleep(2)
 
-    thread = threading.Thread(target=self.loadingScreen)
-    thread.start()
+  def mainMenu(self):
+    bg = pygame.image.load("assets/bgtmp.png").convert()
+    start = True
+    while True:
+      self._display_surf.blit(bg, [0, 0])
+      if start:
+        pygame.draw.rect(self._display_surf, (255, 255, 255), (25, 270, 265, 50), 3)
+      else:
+        pygame.draw.rect(self._display_surf, (255, 255, 255), (25, 320, 110, 50), 3)
+      
+      pygame.display.flip()
 
-    all_path = {}
-
-    graph, all_path = mazeToGraph(self.hard_maze)
-    local_minimum_condition = []
-    local_minimum_condition.append('S')
-    local_minimum_objectives, local_minimum_cost = evaluate(graph, ['A', 'B', 'C', 'D'])
-    for objective in local_minimum_objectives:
-      local_minimum_condition.append(objective)
-
-    local_minimum_condition.append('F')
-
-    for i in range (int(len(local_minimum_condition)) - 1) :
-      self.full_path = self.full_path + str(all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
-
-    self.loading = False
-    thread.join()
-
-    if self.on_init() == False:
-      self._running = False
-
-    self.on_render()
-
-    robot_thread = threading.Thread(target=self.robotThread)
-    robot_thread.start()
-
-    while (self._running):
       pygame.event.pump()
       event = pygame.event.wait()
       keys = pygame.key.get_pressed()
 
       if event.type == pygame.KEYDOWN: 
-        if (keys[K_RIGHT]):
-          self.player.moveRight()
+        if (keys[K_UP] or keys[K_DOWN]):
+          start = not start
 
-        if (keys[K_LEFT]):
-          self.player.moveLeft()
+        if (keys[K_SPACE]):
+          if start:
+            break
+          else:
+            self.on_cleanup()
 
-        if (keys[K_UP]):
-          self.player.moveUp()
+  def on_execute(self):
+    pygame.init()
+    self._display_surf = pygame.display.set_mode((self.windowWidth,self.windowHeight), pygame.HWSURFACE)
+    pygame.display.set_caption('Travelling Mazeman Problem')
 
-        if (keys[K_DOWN]):
-          self.player.moveDown()
+    while True:
+      self.mainMenu()
 
-        if (keys[K_ESCAPE]):
+      thread = threading.Thread(target=self.loadingScreen)
+      thread.start()
+
+      all_path = {}
+
+      graph, all_path = mazeToGraph(self.hard_maze)
+      local_minimum_condition = []
+      local_minimum_condition.append('S')
+      local_minimum_objectives, local_minimum_cost = evaluate(graph, ['A', 'B', 'C', 'D'])
+      for objective in local_minimum_objectives:
+        local_minimum_condition.append(objective)
+
+      local_minimum_condition.append('F')
+
+      for i in range (int(len(local_minimum_condition)) - 1) :
+        self.full_path = self.full_path + str(all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
+
+      self.loading = False
+      thread.join()
+
+      if self.on_init() == False:
+        self._running = False
+
+      self.on_render()
+
+      robot_thread = threading.Thread(target=self.robotThread)
+      robot_thread.start()
+
+      while (self._running):
+        pygame.event.pump()
+        event = pygame.event.wait()
+        keys = pygame.key.get_pressed()
+
+        if self.player.finish:
+          self._display_surf.fill((255, 255, 255)) 
+          self.draw_text('You Win', (0, 0, 0), 20, 20)
           self._running = False
+          robot_thread._stop()
+          pygame.display.update()
+          break
+        elif self.robot.finish:
+          self._display_surf.fill((255, 255, 255)) 
+          self.draw_text('You Lose', (0, 0, 0), 20, 20)
+          self._running = False
+          pygame.display.update()
+          break
 
-        self.on_loop()
-        self.on_render()
-    self.on_cleanup()
+        if event.type == pygame.KEYDOWN: 
+          if (keys[K_RIGHT]):
+            self.player.moveRight()
+
+          if (keys[K_LEFT]):
+            self.player.moveLeft()
+
+          if (keys[K_UP]):
+            self.player.moveUp()
+
+          if (keys[K_DOWN]):
+            self.player.moveDown()
+
+          if (keys[K_ESCAPE]):
+            self._running = False
+
+          self.on_loop()
+          self.on_render()
  
 if __name__ == "__main__" :
   theApp = App()
