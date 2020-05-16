@@ -3,6 +3,8 @@ import time
 import pygame
 import queue
 import networkx as nx
+import threading
+import time
 
 def mazeToGraph(maze):
   graph = nx.Graph()
@@ -169,7 +171,7 @@ def findPath(maze, start_pos, finish_pos):
   return path
 
 class Player:
-  def __init__(self, maze):
+  def __init__(self, maze, real_x, real_y):
     self.key_left = 4
     self.maze = maze
     self.real_x = 5
@@ -209,23 +211,27 @@ class Player:
       self.y = self.y + self.speed
 
 class Maze:
-  def __init__(self, maze, m, n):
+  def __init__(self, maze, m, n, x, y):
     self.M = m
     self.N = n
     self.maze = maze
+    self.x = x
+    self.y = y
 
   def draw(self, display_surf, bush_image_surf, key_image_surf, door_image_surf):
     bx = 0
     by = 0
+    dx = self.x
+    dy = self.y
     for i in self.maze:
       if self.maze[ bx + (by*self.M) ] == '1':
-        display_surf.blit(bush_image_surf,( bx * 44 , by * 44))
+        display_surf.blit(bush_image_surf,( (bx + dx) * 44 , (by + dy) * 44))
 
       if self.maze[ bx + (by*self.M) ] == 'A' or self.maze[ bx + (by*self.M) ] == 'B' or self.maze[ bx + (by*self.M) ] == 'C' or self.maze[ bx + (by*self.M) ] == 'D' :
-        display_surf.blit(key_image_surf,( bx * 44 , by * 44))
+        display_surf.blit(key_image_surf,( (bx + dx) * 44 , (by + dy) * 44))
 
       if self.maze[ bx + (by*self.M) ] == 'F':
-        display_surf.blit(door_image_surf,( bx * 44 , by * 44))
+        display_surf.blit(door_image_surf,( (bx + dx) * 44 , (by + dy) * 44))
 
       bx = bx + 1
       if bx > self.M-1:
@@ -234,9 +240,11 @@ class Maze:
 
 
 class App:
-  windowWidth = 44 * 9
+  windowWidth = 44 * 18
   windowHeight = 44 * 9
   player = 0
+  loading = True
+  full_path = ''
 
   def __init__(self):
     self._running = True
@@ -246,8 +254,6 @@ class App:
     self._key_surf = None
     self._door_surf = None
     
-    self.hard_maze = []
-
     self.hard_maze = [['1', '1', '1', '1', '1', 'S', '1', '1', '1'], 
                       ['1', '0', 'D', '0', '0', '0', '0', '0', '1'], 
                       ['1', '0', '1', '1', '0', '1', '1', 'C', '1'], 
@@ -263,19 +269,22 @@ class App:
       for feature in features:
         self.game_maze.append(feature)
 
-    self.player = Player(self.game_maze)
+    self.player_maze = self.game_maze.copy()
 
-    self.maze = Maze(self.game_maze, 9, 9)
+    self.player = Player(self.player_maze, 9 + 5, 0)
+    self.robot = Player(self.game_maze, 5, 0)
+
+    self.maze = Maze(self.game_maze, 9, 9, 0, 0)
+    self.player_right_maze = Maze(self.player_maze, 9, 9, 9, 0)
 
   def on_init(self):
-    pygame.init()
-    self._display_surf = pygame.display.set_mode((self.windowWidth,self.windowHeight), pygame.HWSURFACE)
-    pygame.display.set_caption('Travelling Mazeman Problem')
+    self._display_surf.fill((255, 255, 255)) 
     self._running = True
     self._image_surf = pygame.image.load("assets/mazeman.png").convert()
     self._bush_surf = pygame.image.load("assets/bush.png").convert()
     self._key_surf = pygame.image.load("assets/key.png").convert()
-    self._door_surf = pygame.image.load("assets/door.png").convert()
+    self._player_door_surf = pygame.image.load("assets/door.png").convert()
+    self._robot_door_surf = pygame.image.load("assets/door.png").convert()
 
   def on_event(self, event):
     if event.type == QUIT:
@@ -286,24 +295,77 @@ class App:
   
   def on_render(self):
     self._display_surf.fill((255, 255, 255))
-    feature = self.game_maze[self.player.real_y * 9 + self.player.real_x]
+    feature = self.game_maze[self.robot.real_y * 9 + self.robot.real_x]
     if feature == 'A' or feature == 'B' or feature == 'C' or feature == 'D':
-      self.game_maze[self.player.real_y * 9 + self.player.real_x] = '0'
+      self.game_maze[self.robot.real_y * 9 + self.robot.real_x] = '0'
+      self.robot.key_left = self.robot.key_left - 1
+      if self.robot.key_left == 0:
+        self._robot_door_surf = pygame.image.load("assets/unlocked_door.png").convert()
+
+    player_feature = self.player_maze[self.player.real_y * 9 + self.player.real_x]
+    if player_feature == 'A' or player_feature == 'B' or player_feature == 'C' or player_feature == 'D':
+      self.player_maze[self.player.real_y * 9 + self.player.real_x] = '0'
       self.player.key_left = self.player.key_left - 1
       if self.player.key_left == 0:
-        self._door_surf = pygame.image.load("assets/unlocked_door.png").convert()
-    self.maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._door_surf)
-    self._display_surf.blit(self._image_surf,(self.player.x,self.player.y))
+        self._player_door_surf = pygame.image.load("assets/unlocked_door.png").convert()
+
+    self.maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._robot_door_surf)
+    self.player_right_maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._player_door_surf)
+
+    self._display_surf.blit(self._image_surf,(self.player.x + (9 * 44), self.player.y))
+    self._display_surf.blit(self._image_surf,(self.robot.x, self.robot.y))
     pygame.display.flip()
 
   def on_cleanup(self):
     pygame.quit()
 
-  def on_execute(self):
-    if self.on_init() == False:
-      self._running = False
+  def loadingScreen(self):
+    font = pygame.font.Font('freesansbold.ttf', 32) 
+    self._display_surf.fill((255, 255, 255)) 
+    loadingText = 'Now Loading'
+    text = font.render(loadingText, True, (0, 0, 0), (255, 255 ,255)) 
+      
+    textRect = text.get_rect()  
+    textRect.center = (self.windowWidth // 2, self.windowHeight // 2) 
 
-    self.on_render()
+    self._display_surf.blit(text, textRect) 
+    pygame.display.flip()
+
+    while (self.loading == True):
+      self._display_surf.fill((255, 255, 255)) 
+      loadingText = 'Now Loading'
+      for i in range(0, 3):
+        loadingText = loadingText + '.'
+        text = font.render(loadingText, True, (0, 0, 0), (255, 255 ,255)) 
+        self._display_surf.blit(text, textRect) 
+        pygame.display.update()
+        time.sleep(0.5)
+
+  def robotThread(self):
+    for path in self.full_path:
+      if path == 'L':
+        self.robot.moveLeft()
+
+      if path == 'R':
+        self.robot.moveRight()
+
+      if path == 'U':
+        self.robot.moveUp()
+
+      if path == 'D':
+        self.robot.moveDown()
+
+      time.sleep(0.3)
+      self.on_loop()
+      self.on_render()
+
+  def on_execute(self):
+    pygame.init()
+    self._display_surf = pygame.display.set_mode((self.windowWidth,self.windowHeight), pygame.HWSURFACE)
+    pygame.display.set_caption('Travelling Mazeman Problem')
+
+    thread = threading.Thread(target=self.loadingScreen)
+    thread.start()
 
     all_path = {}
 
@@ -316,29 +378,19 @@ class App:
 
     local_minimum_condition.append('F')
 
-    full_path = ''
     for i in range (int(len(local_minimum_condition)) - 1) :
-      full_path = full_path + str(all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
+      self.full_path = self.full_path + str(all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
 
-    # for path in full_path:
-    #   if path == 'L':
-    #     self.player.moveLeft();
-    #     time.sleep(0.7)
+    self.loading = False
+    thread.join()
 
-    #   if path == 'R':
-    #     self.player.moveRight();
-    #     time.sleep(0.7)
+    if self.on_init() == False:
+      self._running = False
 
-    #   if path == 'U':
-    #     self.player.moveUp();
-    #     time.sleep(0.7)
+    self.on_render()
 
-    #   if path == 'D':
-    #     self.player.moveDown();
-    #     time.sleep(0.7)
-
-    #   self.on_loop()
-    #   self.on_render()
+    robot_thread = threading.Thread(target=self.robotThread)
+    robot_thread.start()
 
     while (self._running):
       pygame.event.pump()
