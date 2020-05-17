@@ -3,6 +3,7 @@ import time
 import pygame
 import queue
 import networkx as nx
+import random
 import threading
 import time
 
@@ -173,8 +174,8 @@ class Player:
   def __init__(self, maze, real_x, real_y):
     self.key_left = 4
     self.maze = maze
-    self.real_x = 5
-    self.real_y = 0
+    self.real_x = real_x
+    self.real_y = real_y
     self.x = self.real_x * 44
     self.y = self.real_y * 44
     self.speed = 44
@@ -267,18 +268,58 @@ class App:
     self._bush_surf = None
     self._key_surf = None
     self._door_surf = None
+    self.start_x = [5, 4, 1, 2, 4]
+    self.start_y = [0, 0, 0, 0, 0]
     
-    self.hard_maze = [['1', '1', '1', '1', '1', 'S', '1', '1', '1'], 
-                      ['1', '0', 'D', '0', '0', '0', '0', '0', '1'], 
-                      ['1', '0', '1', '1', '0', '1', '1', 'C', '1'], 
-                      ['1', '0', '1', '0', '0', '0', '1', '0', '1'], 
-                      ['1', '0', '1', '0', '1', '0', '1', '0', '1'], 
-                      ['1', '0', '1', '0', '1', 'B', '1', '0', '1'], 
-                      ['1', '0', '1', '0', '1', '0', '1', '1', '1'], 
-                      ['1', 'A', '0', '0', '0', '0', '0', '0', '1'], 
-                      ['1', '1', '1', '1', '1', '1', '1', 'F', '1'] ]
+    self.all_maze = [  [  ['1', '1', '1', '1', '1', 'S', '1', '1', '1'], 
+                          ['1', '0', 'D', '0', '0', '0', '0', '0', '1'], 
+                          ['1', '0', '1', '1', '0', '1', '1', 'C', '1'], 
+                          ['1', '0', '1', '0', '0', '0', '1', '0', '1'], 
+                          ['1', '0', '1', '0', '1', '0', '1', '0', '1'], 
+                          ['1', '0', '1', '0', '1', 'B', '1', '0', '1'], 
+                          ['1', '0', '1', '0', '1', '0', '1', '1', '1'], 
+                          ['1', 'A', '0', '0', '0', '0', '0', '0', '1'], 
+                          ['1', '1', '1', '1', '1', '1', '1', 'F', '1'] ],
+                        [ ['1', '1', '1', '1', 'S', '1', '1', '1', '1'],
+                          ['1', '0', '0', '0', '0', '0', '0', 'C', '1'],
+                          ['1', '0', '0', '1', '1', '1', '1', '0', '1'],
+                          ['1', '0', '1', '0', '0', '0', '1', '0', '1'],
+                          ['1', '0', '1', '0', '0', '1', '1', '0', '1'],
+                          ['1', '0', '1', '1', '0', '1', 'A', '0', '1'],
+                          ['1', 'B', '1', '0', '0', '0', '1', '0', '1'],
+                          ['1', '0', '0', '0', '0', '0', '0', 'D', '1'],
+                          ['1', '1', '1', 'F', '1', '1', '1', '1', '1'] ],
+                        [ ['1', 'S', '1', '1', '1', '1', '1', '1', '1'],
+                          ['1', '0', '0', 'A', '0', '0', '0', '0', '1'],
+                          ['1', '0', '1', '1', '0', '1', '1', '0', '1'],
+                          ['1', '0', '1', '1', '0', '1', 'C', '0', '1'],
+                          ['1', '0', '0', '1', 'B', '0', '1', '0', '1'],
+                          ['1', '0', '1', '1', '1', '1', '1', '0', '1'],
+                          ['1', 'D', '0', '1', '0', '1', '1', '0', '1'],
+                          ['1', '0', '0', '0', '0', '0', '0', '0', '1'],
+                          ['1', '1', '1', '1', 'F', '1', '1', '1', '1'] ],
+                        [ ['1', '1', 'S', '1', '1', '1', '1', '1', '1'],
+                          ['1', '0', '0', '0', '0', '0', 'A', '0', '1'],
+                          ['1', 'C', '0', '0', '0', '1', '1', '1', '1'],
+                          ['1', '0', '1', '0', '0', '0', '0', '0', '1'],
+                          ['1', '0', '1', '0', '0', '1', '1', '0', '1'],
+                          ['1', '0', '1', '0', '0', '1', 'B', '0', '1'],
+                          ['1', '0', '1', '0', '0', '1', '1', '0', '1'],
+                          ['1', 'D', '0', '0', '0', '1', '0', '0', '1'],
+                          ['1', '1', '1', 'F', '1', '1', '1', '1', '1'] ],
+                        [ ['1', '1', '1', '1', 'S', '1', '1', '1', '1'],
+                          ['1', '0', '0', '0', '0', '1', '0', '0', '1'],
+                          ['1', 'A', '1', '0', '0', '0', '0', 'B', '1'],
+                          ['1', '0', '0', '0', '0', '0', '0', '0', '1'],
+                          ['1', '1', '1', '0', '0', '1', '1', '0', '1'],
+                          ['1', '0', '0', '0', '1', '1', '1', 'C', '1'],
+                          ['1', 'D', '1', '1', '1', '1', '1', '0', '1'],
+                          ['1', '0', '0', '0', '0', '0', '0', '0', '1'],
+                          ['1', '1', '1', '1', '1', '1', '1', 'F', '1']  ]  ]
 
   def on_init(self):
+    self.hard_maze = self.all_maze[self.maze_rand]
+    
     self.game_maze = []
     for features in self.hard_maze:
       for feature in features:
@@ -286,8 +327,8 @@ class App:
 
     self.player_maze = self.game_maze.copy()
 
-    self.player = Player(self.player_maze, 9 + 5, 0)
-    self.robot = Player(self.game_maze, 5, 0)
+    self.player = Player(self.player_maze, self.start_x[self.maze_rand], self.start_y[self.maze_rand])
+    self.robot = Player(self.game_maze, self.start_x[self.maze_rand], self.start_y[self.maze_rand])
 
     self.maze = Maze(self.game_maze, 9, 9, 0, 0)
     self.player_right_maze = Maze(self.player_maze, 9, 9, 9, 0)
@@ -326,7 +367,7 @@ class App:
     self.maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._robot_door_surf)
     self.player_right_maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._player_door_surf)
 
-    self._display_surf.blit(self._image_surf,(self.player.x + (9 * 44), self.player.y))
+    self._display_surf.blit(self._image_surf,((self.player.real_x + 9) * 44, self.player.real_y * 44))
     self._display_surf.blit(self._image_surf,(self.robot.x, self.robot.y))
     pygame.display.flip()
 
@@ -373,17 +414,40 @@ class App:
         self.robot.moveDown()
 
       time.sleep(0.3)
-      self.on_loop()
-      self.on_render()
+
+    self.robot.finish = True
+
+  def playerThread(self):
+    while self._running:
+      pygame.event.pump()
+      event = pygame.event.wait()
+      keys = pygame.key.get_pressed()
+      if event.type == pygame.KEYDOWN: 
+        if (keys[K_RIGHT]):
+          self.player.moveRight()
+
+        if (keys[K_LEFT]):
+          self.player.moveLeft()
+
+        if (keys[K_UP]):
+          self.player.moveUp()
+
+        if (keys[K_DOWN]):
+          self.player.moveDown()
+
+        if (keys[K_ESCAPE]):
+          self._running = False
 
   def draw_text(self, text, color, x, y):
-    font = pygame.font.SysFont(None, 20)
+    time.sleep(0.5)
+    self._display_surf.fill((255, 255, 255)) 
+    font = pygame.font.Font('freesansbold.ttf', 32) 
     textobj = font.render(text, 1, color)
     textrect = textobj.get_rect()
-    textrect.topleft = (x, y)
+    textrect.center = (x, y)
     self._display_surf.blit(textobj, textrect)
     pygame.display.update()
-    time.sleep(2)
+    time.sleep(5)
 
   def mainMenu(self):
     bg = pygame.image.load("assets/bgtmp.png").convert()
@@ -416,15 +480,35 @@ class App:
     self._display_surf = pygame.display.set_mode((self.windowWidth,self.windowHeight), pygame.HWSURFACE)
     pygame.display.set_caption('Travelling Mazeman Problem')
 
+    map_visited = [0, 0, 0, 0, 0]
+    map_visited_count = 0
+
     while True:
       self.mainMenu()
+      self.loading = True
 
       thread = threading.Thread(target=self.loadingScreen)
       thread.start()
 
       all_path = {}
 
-      graph, all_path = mazeToGraph(self.hard_maze)
+      if map_visited_count == 5:
+        map_visited = [0, 0, 0, 0, 0]
+
+      self.maze_rand = random.randint(0,4)
+      while True:
+        print(self.maze_rand)
+        if map_visited[self.maze_rand] == 0:
+          map_visited[self.maze_rand] = 1
+          map_visited_count = map_visited_count + 1
+          break
+        else:
+          if self.maze_rand == 4:
+            self.maze_rand = 1
+          else:
+            self.maze_rand = self.maze_rand + 1
+      
+      graph, all_path = mazeToGraph(self.all_maze[self.maze_rand])
       local_minimum_condition = []
       local_minimum_condition.append('S')
       local_minimum_objectives, local_minimum_cost = evaluate(graph, ['A', 'B', 'C', 'D'])
@@ -433,6 +517,7 @@ class App:
 
       local_minimum_condition.append('F')
 
+      self.full_path = ''
       for i in range (int(len(local_minimum_condition)) - 1) :
         self.full_path = self.full_path + str(all_path[local_minimum_condition[i] + local_minimum_condition[i + 1]])
 
@@ -447,43 +532,24 @@ class App:
       robot_thread = threading.Thread(target=self.robotThread)
       robot_thread.start()
 
+      player_thread = threading.Thread(target=self.playerThread)
+      player_thread.start()
+
       while (self._running):
-        pygame.event.pump()
-        event = pygame.event.wait()
-        keys = pygame.key.get_pressed()
-
-        if self.player.finish:
-          self._display_surf.fill((255, 255, 255)) 
-          self.draw_text('You Win', (0, 0, 0), 20, 20)
-          self._running = False
-          robot_thread._stop()
-          pygame.display.update()
-          break
-        elif self.robot.finish:
-          self._display_surf.fill((255, 255, 255)) 
-          self.draw_text('You Lose', (0, 0, 0), 20, 20)
-          self._running = False
-          pygame.display.update()
-          break
-
-        if event.type == pygame.KEYDOWN: 
-          if (keys[K_RIGHT]):
-            self.player.moveRight()
-
-          if (keys[K_LEFT]):
-            self.player.moveLeft()
-
-          if (keys[K_UP]):
-            self.player.moveUp()
-
-          if (keys[K_DOWN]):
-            self.player.moveDown()
-
-          if (keys[K_ESCAPE]):
-            self._running = False
-
-          self.on_loop()
+        self.on_loop()
+        self.on_render()
+        
+        if self.player.finish or self.robot.finish:
           self.on_render()
+          self._running = False
+          robot_thread.join()
+
+          if self.player.finish:
+            self.draw_text('You Win', (0, 0, 0), self.windowWidth//2, self.windowHeight//2)
+          else:
+            self.draw_text('You Lose', (0, 0, 0), self.windowWidth//2, self.windowHeight//2)
+          
+          break
  
 if __name__ == "__main__" :
   theApp = App()
