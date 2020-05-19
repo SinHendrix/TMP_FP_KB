@@ -485,7 +485,7 @@ class App:
       keys = pygame.key.get_pressed()
 
       if event.type == pygame.KEYDOWN: 
-        if (keys[K_SPACE]:
+        if (keys[K_SPACE]):
           return
 
   def on_execute(self):
