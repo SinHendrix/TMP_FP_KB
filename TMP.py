@@ -475,6 +475,19 @@ class App:
           else:
             self.on_cleanup()
 
+  def pressSpace(self):
+    self.draw_text('Press Space to Continue...', (0, 0, 0), self.windowWidth//2, self.windowHeight//2)
+    pygame.display.flip()
+    
+    while True:
+      pygame.event.pump()
+      event = pygame.event.wait()
+      keys = pygame.key.get_pressed()
+
+      if event.type == pygame.KEYDOWN: 
+        if (keys[K_SPACE]:
+          return
+
   def on_execute(self):
     pygame.init()
     self._display_surf = pygame.display.set_mode((self.windowWidth,self.windowHeight), pygame.HWSURFACE)
@@ -523,6 +536,8 @@ class App:
 
       self.loading = False
       thread.join()
+
+      self.pressSpace()
 
       if self.on_init() == False:
         self._running = False
