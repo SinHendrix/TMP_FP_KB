@@ -510,14 +510,13 @@ class App:
 
       self.maze_rand = random.randint(0,4)
       while True:
-        print(self.maze_rand)
         if map_visited[self.maze_rand] == 0:
           map_visited[self.maze_rand] = 1
           map_visited_count = map_visited_count + 1
           break
         else:
           if self.maze_rand == 4:
-            self.maze_rand = 1
+            self.maze_rand = 0
           else:
             self.maze_rand = self.maze_rand + 1
       
