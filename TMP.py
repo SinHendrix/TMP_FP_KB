@@ -265,6 +265,7 @@ class App:
     self._running = True
     self._display_surf = None
     self._image_surf = None
+    self._robot_image_surf = None
     self._bush_surf = None
     self._key_surf = None
     self._door_surf = None
@@ -336,6 +337,7 @@ class App:
     self._display_surf.fill((255, 255, 255)) 
     self._running = True
     self._image_surf = pygame.image.load("assets/mazeman.png").convert()
+    self._robot_image_surf = pygame.image.load("assets/robot.png").convert()
     self._bush_surf = pygame.image.load("assets/bush.png").convert()
     self._key_surf = pygame.image.load("assets/key.png").convert()
     self._player_door_surf = pygame.image.load("assets/door.png").convert()
@@ -368,7 +370,7 @@ class App:
     self.player_right_maze.draw(self._display_surf, self._bush_surf, self._key_surf, self._player_door_surf)
 
     self._display_surf.blit(self._image_surf,((self.player.real_x + 9) * 44, self.player.real_y * 44))
-    self._display_surf.blit(self._image_surf,(self.robot.x, self.robot.y))
+    self._display_surf.blit(self._robot_image_surf,(self.robot.x, self.robot.y))
     pygame.display.flip()
 
   def on_cleanup(self):
